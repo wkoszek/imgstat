@@ -7,7 +7,7 @@ vet: fmt
 	go vet ./...
 
 build: vet
-	go build .
+	go build -o imgstat ./cmd/imgstat/
 
 clean:
 	rm -f imgstat
