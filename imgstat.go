@@ -59,6 +59,10 @@ func Histo(img image.Image) ([]Entry, int) {
 
 // CalcStats computes scalar statistics from the color histogram.
 func CalcStats(entries []Entry, total int) Stats {
+	if total <= 0 {
+		return Stats{}
+	}
+
 	var sumR, sumG, sumB float64
 	var sumR2, sumG2, sumB2 float64
 	var sumL, sumL2, sumS float64
@@ -186,6 +190,9 @@ func pxDist(a, b Px) float64 {
 
 // Kmeans clusters entries into k dominant colors using weighted k-means on the histogram.
 func Kmeans(entries []Entry, k int) []Entry {
+	if k <= 0 {
+		return nil
+	}
 	if k >= len(entries) {
 		return entries
 	}
