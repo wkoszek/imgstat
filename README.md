@@ -68,6 +68,7 @@ Requires Go 1.22+.
 
 - `0` — all files decoded successfully
 - `1` — one or more files could not be opened or decoded
+- `2` — wrong parameters passed in the command line
 
 ## License
 
