@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -18,9 +19,9 @@ import (
 )
 
 const (
-	defaultTop   = 20
-	defaultK     = 6
-	sobelThresh  = 30.0
+	defaultTop  = 20
+	defaultK    = 6
+	sobelThresh = 30.0
 )
 
 type px struct{ r, g, b uint8 }
@@ -43,13 +44,17 @@ type stats struct {
 	edgeDensity         float64
 }
 
+func pixelAt(img image.Image, x, y int) px {
+	c := color.NRGBAModel.Convert(img.At(x, y)).(color.NRGBA)
+	return px{c.R, c.G, c.B}
+}
+
 func histo(img image.Image) ([]entry, int) {
 	bounds := img.Bounds()
 	m := make(map[px]int)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, _ := img.At(x, y).RGBA()
-			m[px{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8)}]++
+			m[pixelAt(img, x, y)]++
 		}
 	}
 	es := make([]entry, 0, len(m))
@@ -147,9 +152,9 @@ func convStats(img image.Image) (sharpness, edgeDensity float64) {
 	luma := make([]float64, w*h)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, _ := img.At(x, y).RGBA()
+			p := pixelAt(img, x, y)
 			luma[(y-bounds.Min.Y)*w+(x-bounds.Min.X)] =
-				0.299*float64(r>>8) + 0.587*float64(g>>8) + 0.114*float64(b>>8)
+				0.299*float64(p.r) + 0.587*float64(p.g) + 0.114*float64(p.b)
 		}
 	}
 
@@ -247,6 +252,12 @@ func kmeans(entries []entry, k int) []entry {
 }
 
 func report(name string, r io.Reader, n, k int) error {
+	if n < 0 {
+		return fmt.Errorf("%s: -n must be >= 0", name)
+	}
+	if k < 0 {
+		return fmt.Errorf("%s: -k must be >= 0", name)
+	}
 	img, format, err := image.Decode(r)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -276,7 +287,7 @@ func report(name string, r io.Reader, n, k int) error {
 
 	if k > 0 {
 		palette := kmeans(entries, k)
-		fmt.Printf("# palette k=%d\n", k)
+		fmt.Printf("# palette k=%d\n", len(palette))
 		fmt.Printf("# %6s %3s %3s %3s %6s\n", "hex", "r", "g", "b", "%")
 		for _, e := range palette {
 			pct := float64(e.count) * 100 / float64(total)
@@ -292,6 +303,15 @@ func main() {
 	n := flag.Int("n", defaultTop, "top N colors")
 	k := flag.Int("k", defaultK, "k-means palette size (0 to disable)")
 	flag.Parse()
+
+	if *n < 0 {
+		fmt.Fprintln(os.Stderr, "-n must be >= 0")
+		os.Exit(2)
+	}
+	if *k < 0 {
+		fmt.Fprintln(os.Stderr, "-k must be >= 0")
+		os.Exit(2)
+	}
 
 	failed := false
 	args := flag.Args()
