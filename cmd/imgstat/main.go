@@ -35,7 +35,7 @@ func hexStr(r, g, b uint8, colors bool) string {
 		r, g, b, fr, fg, fb, hex)
 }
 
-func report(name string, r io.Reader, n, k int, colors bool) error {
+func report(name string, r io.Reader, n, k int, colors, hinton bool) error {
 	if n < 0 {
 		return fmt.Errorf("-n must be >= 0")
 	}
@@ -80,6 +80,17 @@ func report(name string, r io.Reader, n, k int, colors bool) error {
 				e.Px.R, e.Px.G, e.Px.B, pct)
 		}
 	}
+	if hinton {
+		palette := imgstat.PaletteHinton(img)
+		fmt.Printf("# palette hinton\n")
+		fmt.Printf("# %6s %3s %3s %3s %6s\n", "hex", "r", "g", "b", "%")
+		for _, e := range palette {
+			pct := float64(e.Count) * 100 / float64(total)
+			fmt.Printf("  %s %3d %3d %3d %5.1f%%\n",
+				hexStr(e.Px.R, e.Px.G, e.Px.B, colors),
+				e.Px.R, e.Px.G, e.Px.B, pct)
+		}
+	}
 	return nil
 }
 
@@ -87,6 +98,7 @@ func main() {
 	n := flag.Int("n", defaultTop, "top N colors")
 	k := flag.Int("k", defaultK, "k-means palette size (0 to disable)")
 	c := flag.Bool("c", false, "colorize hex values with their actual color")
+	a := flag.Bool("H", false, "Hinton palette (Oklab k-means, 5 colors)")
 	flag.Parse()
 
 	if *n < 0 {
@@ -101,7 +113,7 @@ func main() {
 	failed := false
 	args := flag.Args()
 	if len(args) == 0 {
-		if err := report("stdin", os.Stdin, *n, *k, *c); err != nil {
+		if err := report("stdin", os.Stdin, *n, *k, *c, *a); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			failed = true
 		}
@@ -113,7 +125,7 @@ func main() {
 				failed = true
 				continue
 			}
-			if err := report(name, f, *n, *k, *c); err != nil {
+			if err := report(name, f, *n, *k, *c, *a); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				failed = true
 			}
