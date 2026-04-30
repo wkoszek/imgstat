@@ -13,7 +13,7 @@ import (
 
 func TestReportRejectsNegativeN(t *testing.T) {
 	out, err := captureStdout(func() error {
-		return report("test", bytes.NewReader(nil), -1, 0)
+		return report("test", bytes.NewReader(nil), -1, 0, false)
 	})
 	if err == nil {
 		t.Fatal("report returned nil error, want failure for negative -n")
@@ -28,7 +28,7 @@ func TestReportRejectsNegativeN(t *testing.T) {
 
 func TestReportRejectsNegativeK(t *testing.T) {
 	out, err := captureStdout(func() error {
-		return report("test", bytes.NewReader(nil), 0, -1)
+		return report("test", bytes.NewReader(nil), 0, -1, false)
 	})
 	if err == nil {
 		t.Fatal("report returned nil error, want failure for negative -k")
@@ -51,7 +51,7 @@ func TestReportPaletteHeaderUsesActualClusterCount(t *testing.T) {
 	}
 
 	out, err := captureStdout(func() error {
-		return report("test.png", bytes.NewReader(buf.Bytes()), defaultTop, defaultK)
+		return report("test.png", bytes.NewReader(buf.Bytes()), defaultTop, defaultK, false)
 	})
 	if err != nil {
 		t.Fatalf("report: %v", err)

@@ -21,7 +21,21 @@ const (
 	defaultK   = 6
 )
 
-func report(name string, r io.Reader, n, k int) error {
+func hexStr(r, g, b uint8, colors bool) string {
+	hex := int(r)<<16 | int(g)<<8 | int(b)
+	if !colors {
+		return fmt.Sprintf("%06x", hex)
+	}
+	luma := 0.299*float64(r) + 0.587*float64(g) + 0.114*float64(b)
+	var fr, fg, fb uint8 = 255, 255, 255
+	if luma > 128 {
+		fr, fg, fb = 0, 0, 0
+	}
+	return fmt.Sprintf("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm%06x\x1b[0m",
+		r, g, b, fr, fg, fb, hex)
+}
+
+func report(name string, r io.Reader, n, k int, colors bool) error {
 	if n < 0 {
 		return fmt.Errorf("-n must be >= 0")
 	}
@@ -45,8 +59,8 @@ func report(name string, r io.Reader, n, k int) error {
 	fmt.Printf("# %6s %3s %3s %3s %7s %6s\n", "hex", "r", "g", "b", "n", "%")
 	for _, e := range entries[:n] {
 		pct := float64(e.Count) * 100 / float64(total)
-		fmt.Printf("  %06x %3d %3d %3d %7d %5.1f%%\n",
-			int(e.Px.R)<<16|int(e.Px.G)<<8|int(e.Px.B),
+		fmt.Printf("  %s %3d %3d %3d %7d %5.1f%%\n",
+			hexStr(e.Px.R, e.Px.G, e.Px.B, colors),
 			e.Px.R, e.Px.G, e.Px.B, e.Count, pct)
 	}
 	fmt.Printf("# mean   %3.0f %3.0f %3.0f  luma %5.1f±%.1f  sat %.2f  entropy %.2f\n",
@@ -61,8 +75,8 @@ func report(name string, r io.Reader, n, k int) error {
 		fmt.Printf("# %6s %3s %3s %3s %6s\n", "hex", "r", "g", "b", "%")
 		for _, e := range palette {
 			pct := float64(e.Count) * 100 / float64(total)
-			fmt.Printf("  %06x %3d %3d %3d %5.1f%%\n",
-				int(e.Px.R)<<16|int(e.Px.G)<<8|int(e.Px.B),
+			fmt.Printf("  %s %3d %3d %3d %5.1f%%\n",
+				hexStr(e.Px.R, e.Px.G, e.Px.B, colors),
 				e.Px.R, e.Px.G, e.Px.B, pct)
 		}
 	}
@@ -72,6 +86,7 @@ func report(name string, r io.Reader, n, k int) error {
 func main() {
 	n := flag.Int("n", defaultTop, "top N colors")
 	k := flag.Int("k", defaultK, "k-means palette size (0 to disable)")
+	c := flag.Bool("c", false, "colorize hex values with their actual color")
 	flag.Parse()
 
 	if *n < 0 {
@@ -86,7 +101,7 @@ func main() {
 	failed := false
 	args := flag.Args()
 	if len(args) == 0 {
-		if err := report("stdin", os.Stdin, *n, *k); err != nil {
+		if err := report("stdin", os.Stdin, *n, *k, *c); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			failed = true
 		}
@@ -98,7 +113,7 @@ func main() {
 				failed = true
 				continue
 			}
-			if err := report(name, f, *n, *k); err != nil {
+			if err := report(name, f, *n, *k, *c); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				failed = true
 			}
