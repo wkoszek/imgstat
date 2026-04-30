@@ -98,7 +98,7 @@ func main() {
 	n := flag.Int("n", defaultTop, "top N colors")
 	k := flag.Int("k", defaultK, "k-means palette size (0 to disable)")
 	c := flag.Bool("c", false, "colorize hex values with their actual color")
-	a := flag.Bool("A", false, "Hinton palette (Oklab k-means, 5 colors)")
+	a := flag.Bool("H", false, "Hinton palette (Oklab k-means, 5 colors)")
 	flag.Parse()
 
 	if *n < 0 {
